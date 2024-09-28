@@ -29,28 +29,20 @@ addHouseInfoScene.action(/entrance_(\d+)/, async (ctx) => {
     const selectedEntrance = Entrances[`ENTRANCE_${entranceIndex}`];
     const entrances = Object.values(Entrances);
 
-    // Оновлення вибору користувача в пам'яті
     userPages[ctx.update.callback_query.from.id].entrance = entranceIndex;
 
-    // Створення тексту для нового повідомлення
     const entranceText = `Виберіть номер під'їзду:`;
 
-    // Оновлення тексту кнопок під'їздів
     const updatedEntrances = entrances.map((entrance, index) => {
         const buttonLabel = (index + 1 === parseInt(entranceIndex)) ? `${entrance} ✅` : entrance;
         return [Markup.button.callback(`Під\'їзд ${buttonLabel}`, `entrance_${index + 1}`)];
     });
 
-    console.log(updatedEntrances)
-    // Оновлення тексту повідомлення
     await ctx.editMessageText(entranceText, await menuEntrance(updatedEntrances));
 
-    // Відправлення повідомлення про вибір під'їзду
     await ctx.reply(`Ви обрали під'їзд ${selectedEntrance}.`);
-    await ctx.reply(`Виберіть поверх:`, Markup.inlineKeyboard(
-        Floors.map((floor, index) => [Markup.button.callback(floor, `floor_${index + 1}`)])
-    ).resize());
 
+    await sendFloorsPage(ctx);
 
 });
 
@@ -59,18 +51,6 @@ function menuEntrance(updatedEntrances) {
         updatedEntrances
     ).resize();
 }
-addHouseInfoScene.action(/floor_(\d+)/, async (ctx) => {
-    const floorIndex = parseInt(ctx.match[1]);
-    userPages[ctx.update.callback_query.from.id].floor = floorIndex; // Store floor selection
-    const apartmentsCount = (floorIndex === 1 || floorIndex === 6) ? ApartmentsPerFloor[floorIndex] : ApartmentsPerFloor.default;
-
-    const apartments = Array.from({ length: apartmentsCount }, (_, i) => `Квартира ${i + 1}`);
-
-    await ctx.reply(`Ви обрали ${Floors[floorIndex - 1]}. Виберіть квартиру:`, Markup.inlineKeyboard(
-        apartments.map((apartment, index) => [Markup.button.callback(apartment, `apartment_${index + 1}`)])
-    ).resize());
-});
-
 addHouseInfoScene.action(/apartment_(\d+)/, async (ctx) => {
     const tgId = ctx.update.callback_query.from.id;
     const apartment = ctx.match[1];
@@ -96,3 +76,81 @@ addHouseInfoScene.action(/apartment_(\d+)/, async (ctx) => {
         await ctx.reply('Виникла помилка при оновленні інформації. Спробуйте ще раз.');
     }
 })
+
+addHouseInfoScene.action(/floor_page_(\d+)/, async (ctx) => {
+    const pageIndex = parseInt(ctx.match[1]);
+    await sendFloorsPage(ctx, pageIndex);
+});
+
+
+const floorsPerPage = 5;
+async function sendFloorsPage(ctx, page = 1, edit=false, selectedFloor) {
+    const totalPages = Math.ceil(Floors.length / floorsPerPage); // Загальна кількість сторінок
+    if(!selectedFloor) selectedFloor=userPages[ctx?.update.callback_query.from.id].floor;
+    const start = (page - 1) * floorsPerPage;
+    const end = Math.min(start + floorsPerPage, Floors.length);
+    const floorsToShow = Floors.slice(start, end);
+
+    const floorButtons = floorsToShow.map((floor, index) =>
+        [Markup.button.callback(
+            `Поверх ${edit && floor == selectedFloor ? `${floor} ✅` :
+                selectedFloor && floor == selectedFloor ? `${floor} ✅` :
+                    floor}`,
+            `floor_${start + index + 1}`)]);
+
+
+    const navigationButtons = [];
+    if (page > 1) {
+        navigationButtons.push(Markup.button.callback('Назад', `floor_page_${page - 1}`));
+    }
+    if (page < totalPages) {
+        navigationButtons.push(Markup.button.callback('Вперед', `floor_page_${page + 1}`));
+    }
+
+    const replyMarkup = Markup.inlineKeyboard([...floorButtons, navigationButtons]).resize();
+    const text= `Виберіть поверх:`;
+    edit? await ctx.editMessageText(text, replyMarkup): await ctx.reply(text, replyMarkup);
+}
+
+addHouseInfoScene.action(/floor_(\d+)/, async (ctx) => {
+    const floorIndex = parseInt(ctx.match[1]);
+    userPages[ctx.update.callback_query.from.id].floor = ctx.match[1].toString();
+
+    const apartmentsCount = (floorIndex === 1 || floorIndex === 6) ? ApartmentsPerFloor[floorIndex] : ApartmentsPerFloor.default;
+    console.log(apartmentsCount)
+   await sendFloorsPage(ctx, Math.ceil(floorIndex / floorsPerPage), true, floorIndex)
+
+});
+
+
+//
+// const sendApartmentsPage = async (ctx, floorIndex, page, totalPages) => {
+//     const apartmentsCount = (floorIndex === 1 || floorIndex === 6) ? ApartmentsPerFloor[floorIndex] : ApartmentsPerFloor.default;
+//     const apartments = Array.from({ length: apartmentsCount }, (_, i) => `Квартира ${i + 1}`);
+//
+//     // Визначаємо квартири для поточної сторінки
+//     const start = (page - 1) * apartmentsPerPage;
+//     const end = start + apartmentsPerPage;
+//     const apartmentsToShow = apartments.slice(start, end);
+//
+//     // Створюємо клавіатуру для квартир
+//     const apartmentButtons = apartmentsToShow.map((apartment, index) => [Markup.button.callback(apartment, `apartment_${start + index + 1}`)]);
+//
+//     // Додаємо кнопки для пагінації
+//     const navigationButtons = [];
+//     if (page > 1) {
+//         navigationButtons.push(Markup.button.callback('Назад', `page_${page - 1}`));
+//     }
+//     if (page < totalPages) {
+//         navigationButtons.push(Markup.button.callback('Вперед', `page_${page + 1}`));
+//     }
+//
+//     const replyMarkup = Markup.inlineKeyboard([...apartmentButtons, navigationButtons]).resize();
+//
+//     await ctx.editMessageText(`Ви обрали ${Floors[floorIndex - 1]}. Виберіть квартиру:`, {
+//         reply_markup: replyMarkup,
+//         parse_mode: 'Markdown' // або 'HTML', якщо потрібно
+//     });
+// };
+
+

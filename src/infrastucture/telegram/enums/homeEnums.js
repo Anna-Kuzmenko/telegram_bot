@@ -7,7 +7,7 @@ export const Entrances = {
     ENTRANCE_6: '6'
 };
 
-export const Floors = Array.from({ length: 15 }, (_, i) => `Поверх ${i + 1}`);
+export const Floors = Array.from({ length: 15 }, (_, i) => `${i + 1}`);
 
 export const ApartmentsPerFloor = {
     1: 5, // 1-й поверх
