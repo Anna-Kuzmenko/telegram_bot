@@ -1,0 +1,11 @@
+.idea/
+@mikro-orm
+.env
+.vscode/
+logs/*
+node_modules/
+src/app/public/avatar/*.*
+src/app/public/PDFs/*.*
+/public
+/temp
+/images
