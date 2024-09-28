@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import {houseInfoSchema} from "./HouseInfo.js";
 export const userSchema = new mongoose.Schema({
-    tgId: { type: String, unique: true, required: true },
+    tgId: { type: String, unique: true, required: true, index: true },
     firstName: String,
     lastName: String,
     username: String,
