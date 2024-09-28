@@ -12,6 +12,7 @@ import {
     sendApartmentsPage,
     floorsPerPage
 } from "../services/addHouseInfo.service.js";
+
 const {BaseScene} = Scenes;
 
 export const addHouseInfoScene = new BaseScene('addHouseInfoScene');
@@ -20,7 +21,7 @@ export const userPages = {}; // Store user pages
 
 addHouseInfoScene.enter(async (ctx) => {
     const tgId = ctx.update.message.from.id;
-    userPages[tgId] = { page: 1 };
+    userPages[tgId] = {page: 1};
 
     await sendEntranceButtons(ctx);
 });
@@ -50,6 +51,7 @@ addHouseInfoScene.action(/entrance_(\d+)/, async (ctx) => {
 addHouseInfoScene.action(/apartment_(\d+)/, async (ctx) => {
     const tgId = ctx.update.callback_query.from.id;
     const apartment = ctx.match[1];
+    await sendApartmentsPage(ctx, true, apartment)
 
     const entrance = userPages[tgId].entrance;
     const floor = userPages[tgId].floor;
@@ -62,11 +64,20 @@ addHouseInfoScene.action(/apartment_(\d+)/, async (ctx) => {
 
     try {
         await User.findOneAndUpdate(
-            { tgId },
-            { $set: { houseInfo: userInfo } },
-            { new: true, upsert: true }
+            {tgId},
+            {$set: {houseInfo: userInfo}},
+            {new: true, upsert: true}
         );
-        await ctx.reply(`Ви обрали квартиру ${apartment}. Інформацію оновлено.`);
+        await ctx.reply(`<b>Ви обрали квартиру ${apartment}.</b> Інформацію оновлено.`, { parse_mode: 'HTML' });
+
+        await ctx.reply(
+            `<b>🎉 Приєднуйтесь до нас!</b>\n\n` +
+            `Щоб отримувати останні новини та оновлення, будь ласка, перейдіть за посиланням нижче:\n\n` +
+            `<a href="${process.env.REFERENCE_CHANEL}">👉 Підписатися на канал</a>\n\n` +
+            `Дякуємо за вашу підтримку! 🙌`,
+            { parse_mode: 'HTML' }
+        );
+
     } catch (error) {
         console.error('Error updating user info:', error);
         await ctx.reply('Виникла помилка при оновленні інформації. Спробуйте ще раз.');

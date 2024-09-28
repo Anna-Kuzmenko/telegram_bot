@@ -9,7 +9,7 @@ export async function getAvailableApartments(floor, entrance) {
     }
 
     const [start, end] = totalApartmentsInEntrance;
-    const apartmentsPerFloor = ApartmentsPerFloor[entrance] ||  ApartmentsPerFloor.default;
+    const apartmentsPerFloor = ApartmentsPerFloor[entrance] || ApartmentsPerFloor.default;
 
     const apartmentsOnFloor = [];
     const firstApartmentOnFloor = start + (floor - 1) * apartmentsPerFloor;
@@ -24,7 +24,7 @@ export async function getAvailableApartments(floor, entrance) {
 };
 
 export function menuEntrance(updatedEntrances) {
-    return  Markup.inlineKeyboard(
+    return Markup.inlineKeyboard(
         updatedEntrances
     ).resize();
 }
@@ -38,9 +38,10 @@ export const sendEntranceButtons = async (ctx) => {
 };
 
 export const floorsPerPage = 5;
-export async function sendFloorsPage(ctx, page = 1, edit=false, selectedFloor) {
+
+export async function sendFloorsPage(ctx, page = 1, edit = false, selectedFloor) {
     const totalPages = Math.ceil(Floors.length / floorsPerPage); // Загальна кількість сторінок
-    if(!selectedFloor) selectedFloor=userPages[ctx?.update.callback_query.from.id].floor;
+    if (!selectedFloor) selectedFloor = userPages[ctx?.update.callback_query.from.id].floor;
     const start = (page - 1) * floorsPerPage;
     const end = Math.min(start + floorsPerPage, Floors.length);
     const floorsToShow = Floors.slice(start, end);
@@ -62,17 +63,22 @@ export async function sendFloorsPage(ctx, page = 1, edit=false, selectedFloor) {
     }
 
     const replyMarkup = Markup.inlineKeyboard([...floorButtons, navigationButtons]).resize();
-    const text= `Виберіть поверх:`;
-    edit? await ctx.editMessageText(text, replyMarkup): await ctx.reply(text, replyMarkup);
+    const text = `Виберіть поверх:`;
+    edit ? await ctx.editMessageText(text, replyMarkup) : await ctx.reply(text, replyMarkup);
 }
 
-export async function sendApartmentsPage(ctx, page = 1, edit=false, selectedFloor) {
-    const { entrance, floor }= userPages[ctx?.update.callback_query.from.id]
+export async function sendApartmentsPage(ctx, edit = false, selectedFlat) {
+    const {entrance, floor} = userPages[ctx?.update.callback_query.from.id]
 
-    const availableApartments= await getAvailableApartments(floor, entrance);
+    const availableApartments = await getAvailableApartments(floor, entrance);
 
     const apartamentButtons = availableApartments.map((entrance, index) =>
-        [Markup.button.callback(`🏚 Квартира ${entrance}`, `apartment_${entrance}`)]);
+        [Markup.button.callback(`🏚 Квартира ${entrance} ${edit && entrance == selectedFlat ? '✅' : ''}`, `apartment_${entrance}`)]);
 
-    return ctx.reply('Виберіть номер квартири:', Markup.inlineKeyboard([...apartamentButtons]).resize());
+    const replyMarkup = Markup.inlineKeyboard([...apartamentButtons]).resize();
+
+    const text = 'Виберіть номер квартири:';
+
+    edit ? await ctx.editMessageText(text, replyMarkup) : await ctx.reply(text, replyMarkup);
+
 }
